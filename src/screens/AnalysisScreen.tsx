@@ -517,9 +517,7 @@ export default function AnalysisScreen({ navigation }: any) {
 
             {activeTab === "summary" && renderSummaryPreview()}
             {activeTab === "advice" && renderAdvicePreview()}
-            {activeTab === "patterns" && (
-              {renderPatternsContent()}
-            )}
+            {activeTab === "patterns" && renderPatternsContent()}
           </>
         )}
 
@@ -532,9 +530,7 @@ export default function AnalysisScreen({ navigation }: any) {
 
             {activeTab === "summary" && renderSummaryPreview()}
             {activeTab === "advice" && renderAdvicePreview()}
-            {activeTab === "patterns" && (
-              {renderPatternsContent()}
-            )}
+            {activeTab === "patterns" && renderPatternsContent()}
           </>
         )}
 
@@ -572,9 +568,7 @@ export default function AnalysisScreen({ navigation }: any) {
               </>
             )}
 
-            {activeTab === "patterns" && (
-              {renderPatternsContent()}
-            )}
+            {activeTab === "patterns" && renderPatternsContent()}
 
             <TouchableOpacity
               style={styles.refreshButton}
