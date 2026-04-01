@@ -10,7 +10,7 @@ interface AnalysisResult {
   };
 }
 
-export async function analyseEntry(text: string): Promise<AnalysisResult> {
+export async function analyseEntry(text: string): Promise<AnalysisResult | null> {
   const prompt = `You are a supportive wellness assistant for mothers. Analyse the following journal entries and return a JSON object with exactly these keys:
 - "summary": a brief empathetic summary of the mother's week
 - "advice": practical, gentle advice based on what she shared
@@ -24,7 +24,7 @@ Respond ONLY with valid JSON, no markdown.`;
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,15 +37,20 @@ Respond ONLY with valid JSON, no markdown.`;
     if (!response.ok) {
       const errorBody = await response.text();
       console.error("Gemini API error:", response.status, errorBody);
-      throw new Error(`Gemini API returned ${response.status}: ${errorBody}`);
+      return null;
     }
 
     const data = await response.json();
-    const responseText = data.candidates[0].content.parts[0].text;
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!responseText) {
+      console.error("Gemini API returned unexpected shape:", JSON.stringify(data));
+      return null;
+    }
 
     return JSON.parse(responseText) as AnalysisResult;
   } catch (error) {
     console.error("analyseEntry failed:", error);
-    throw error;
+    return null;
   }
 }

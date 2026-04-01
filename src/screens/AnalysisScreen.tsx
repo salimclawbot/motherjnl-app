@@ -31,6 +31,7 @@ export default function AnalysisScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [hasEntries, setHasEntries] = useState<boolean | null>(null);
   const [dayFrequency, setDayFrequency] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [analysisFailed, setAnalysisFailed] = useState(false);
   const spinValue = useRef(new Animated.Value(0)).current;
   const skeletonAnim = useRef(new Animated.Value(0.3)).current;
 
@@ -73,6 +74,7 @@ export default function AnalysisScreen({ navigation }: any) {
   const runAnalysis = async () => {
     if (!user) return;
     setLoading(true);
+    setAnalysisFailed(false);
 
     Animated.loop(
       Animated.timing(spinValue, {
@@ -93,11 +95,8 @@ export default function AnalysisScreen({ navigation }: any) {
       .order("created_at", { ascending: true });
 
     if (!data || data.length === 0) {
-      setAnalysis({
-        summary: "No entries found in the last 7 days.",
-        advice: "Start journaling to get personalised insights!",
-        alerts: [],
-      });
+      setAnalysis(null);
+      setAnalysisFailed(false);
       setLoading(false);
       return;
     }
@@ -106,7 +105,6 @@ export default function AnalysisScreen({ navigation }: any) {
     const freq = [0, 0, 0, 0, 0, 0, 0];
     data.forEach((e) => {
       const day = new Date(e.created_at).getDay();
-      // Convert Sunday=0 to index 6, Monday=1 to index 0, etc.
       const idx = day === 0 ? 6 : day - 1;
       freq[idx]++;
     });
@@ -119,19 +117,13 @@ export default function AnalysisScreen({ navigation }: any) {
       )
       .join("\n\n");
 
-    try {
-      const result = await analyseEntry(combinedText);
+    const result = await analyseEntry(combinedText);
+    if (result) {
       setAnalysis(result);
-    } catch (error) {
-      console.error("Analysis failed:", error);
-      setAnalysis({
-        summary: "Unable to analyse entries right now.",
-        advice:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred. Please try again.",
-        alerts: [],
-      });
+      setAnalysisFailed(false);
+    } else {
+      setAnalysis(null);
+      setAnalysisFailed(true);
     }
     setLoading(false);
     spinValue.setValue(0);
@@ -155,6 +147,68 @@ export default function AnalysisScreen({ navigation }: any) {
   }
 
   const maxFreq = Math.max(...dayFrequency, 1);
+  const showPreview = !analysis && !loading;
+  const showAnalysisFailed = analysisFailed && !loading;
+
+  const renderSummaryPreview = () => (
+    <View style={styles.previewCard}>
+      <Text style={styles.previewHeading}>
+        Your weekly summary will appear here ✨
+      </Text>
+      <View style={styles.previewChipsContainer}>
+        {["😴 Sleep patterns detected", "💪 Stress levels trending down", "🌸 Positive moments: 4 this week"].map((chip) => (
+          <View key={chip} style={styles.previewChip}>
+            <Text style={styles.previewChipText}>{chip}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.previewCaption}>
+        Write a few entries and your personal summary will come alive
+      </Text>
+    </View>
+  );
+
+  const renderAdvicePreview = () => (
+    <View style={styles.previewCard}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardIcon}>💜</Text>
+        <Text style={styles.cardHeading}>Gentle Guidance</Text>
+      </View>
+      <Text style={styles.previewSubheading}>
+        Here is an example of the advice you will receive:
+      </Text>
+      <View style={styles.exampleBlock}>
+        <Text style={styles.exampleText}>
+          You have been showing great resilience this week. Remember to take
+          moments for yourself — even 5 minutes of quiet can recharge you. Your
+          entries show you care deeply about your family.
+        </Text>
+      </View>
+      <Text style={styles.previewCaption}>
+        Your personalised advice appears after your first few entries
+      </Text>
+    </View>
+  );
+
+  const renderMoodChips = () => (
+    <View style={styles.moodSection}>
+      <Text style={styles.moodSectionTitle}>Mood Distribution</Text>
+      <View style={styles.moodChipsContainer}>
+        {[
+          { label: "Calm", emoji: "😌" },
+          { label: "Happy", emoji: "😊" },
+          { label: "Tired", emoji: "😴" },
+          { label: "Anxious", emoji: "😰" },
+        ].map((mood) => (
+          <View key={mood.label} style={styles.moodChip}>
+            <Text style={styles.moodChipText}>
+              {mood.label} {mood.emoji}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -183,11 +237,84 @@ export default function AnalysisScreen({ navigation }: any) {
           ))}
         </View>
 
-        {!analysis && !loading && (
-          <TouchableOpacity style={styles.analyseButton} onPress={runAnalysis}>
-            <Ionicons name="sparkles-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.analyseButtonText}>Analyse Last 7 Days</Text>
-          </TouchableOpacity>
+        {showPreview && !showAnalysisFailed && (
+          <>
+            <TouchableOpacity style={styles.analyseButton} onPress={runAnalysis}>
+              <Ionicons name="sparkles-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.analyseButtonText}>Analyse Last 7 Days</Text>
+            </TouchableOpacity>
+
+            {activeTab === "summary" && renderSummaryPreview()}
+            {activeTab === "advice" && renderAdvicePreview()}
+            {activeTab === "patterns" && (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardIcon}>📊</Text>
+                  <Text style={styles.cardHeading}>Entry Frequency</Text>
+                </View>
+                <View style={styles.chartContainer}>
+                  {dayFrequency.map((count, i) => (
+                    <View key={i} style={styles.barColumn}>
+                      <View style={styles.barWrapper}>
+                        <View
+                          style={[
+                            styles.bar,
+                            {
+                              height: `${(count / maxFreq) * 100}%`,
+                              backgroundColor:
+                                count > 0 ? "#D4847A" : "#E8D5CE",
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.barLabel}>{DAY_LABELS[i]}</Text>
+                    </View>
+                  ))}
+                </View>
+                {renderMoodChips()}
+              </View>
+            )}
+          </>
+        )}
+
+        {showAnalysisFailed && (
+          <>
+            <TouchableOpacity style={styles.analyseButton} onPress={runAnalysis}>
+              <Ionicons name="refresh-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.analyseButtonText}>Try Again</Text>
+            </TouchableOpacity>
+
+            {activeTab === "summary" && renderSummaryPreview()}
+            {activeTab === "advice" && renderAdvicePreview()}
+            {activeTab === "patterns" && (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardIcon}>📊</Text>
+                  <Text style={styles.cardHeading}>Entry Frequency</Text>
+                </View>
+                <View style={styles.chartContainer}>
+                  {dayFrequency.map((count, i) => (
+                    <View key={i} style={styles.barColumn}>
+                      <View style={styles.barWrapper}>
+                        <View
+                          style={[
+                            styles.bar,
+                            {
+                              height: `${(count / maxFreq) * 100}%`,
+                              backgroundColor:
+                                count > 0 ? "#D4847A" : "#E8D5CE",
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.barLabel}>{DAY_LABELS[i]}</Text>
+                    </View>
+                  ))}
+                </View>
+                {renderMoodChips()}
+              </View>
+            )}
+          </>
         )}
 
         {loading && (
@@ -251,6 +378,7 @@ export default function AnalysisScreen({ navigation }: any) {
                       </View>
                     ))}
                   </View>
+                  {renderMoodChips()}
                 </>
               )}
             </View>
@@ -448,5 +576,93 @@ const styles = StyleSheet.create({
     color: "#8B6E65",
     textAlign: "center",
     lineHeight: 22,
+  },
+  // Preview / empty state styles
+  previewCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: "#E8D5CE",
+    borderStyle: "dashed",
+  },
+  previewHeading: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#2C1810",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  previewSubheading: {
+    fontSize: 14,
+    color: "#8B6E65",
+    marginBottom: 12,
+  },
+  previewChipsContainer: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  previewChip: {
+    backgroundColor: "#FDF6F0",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#E8D5CE",
+  },
+  previewChipText: {
+    fontSize: 15,
+    color: "#8B6E65",
+  },
+  previewCaption: {
+    fontSize: 13,
+    color: "#B09A90",
+    textAlign: "center",
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  exampleBlock: {
+    backgroundColor: "#FDF6F0",
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: "#D4847A",
+    marginBottom: 14,
+  },
+  exampleText: {
+    fontSize: 15,
+    color: "#5C4033",
+    lineHeight: 22,
+    fontStyle: "italic",
+  },
+  moodSection: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F0E4DC",
+  },
+  moodSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#2C1810",
+    marginBottom: 12,
+  },
+  moodChipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  moodChip: {
+    backgroundColor: "#FDF6F0",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "#E8D5CE",
+  },
+  moodChipText: {
+    fontSize: 14,
+    color: "#8B6E65",
+    fontWeight: "500",
   },
 });
