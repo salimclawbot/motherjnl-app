@@ -24,7 +24,7 @@ export default function AnalysisScreen({ navigation }: any) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<Tab>("summary");
-  const [adviceMode, setAdviceMode] = useState<AdviceMode>("today");
+  const [adviceMode, setAdviceMode] = useState<AdviceMode>("week");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasEntries, setHasEntries] = useState<boolean | null>(null);
@@ -60,12 +60,20 @@ export default function AnalysisScreen({ navigation }: any) {
       .from("journal_entries")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id);
-    setHasEntries((count ?? 0) > 0);
+    const hasAny = (count ?? 0) > 0;
+    setHasEntries(hasAny);
+    return hasAny;
   }, [user]);
 
   useFocusEffect(
     useCallback(() => {
-      checkEntries();
+      const init = async () => {
+        const hasAny = await checkEntries();
+        if (hasAny) {
+          await runAnalysis();
+        }
+      };
+      init();
     }, [checkEntries])
   );
 

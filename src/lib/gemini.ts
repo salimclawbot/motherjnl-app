@@ -30,97 +30,76 @@ export interface AnalysisResult {
 }
 
 function stripJsonMarkdown(text: string): string {
-  // Strip ```json ... ``` or ``` ... ``` wrappers Gemini sometimes adds
   return text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
 }
 
 export async function analyseEntry(text: string, mode: "today" | "week" = "week"): Promise<AnalysisResult | null> {
-  const prompt = mode === "week"
-    ? `You are a deeply empathetic wellness coach specialising in maternal health. You ALWAYS provide rich, detailed, deeply personalised analysis — even when entries are short. Short entries reveal just as much as long ones: what someone chooses to write (or not write) tells a story.
+  const prompt = `You are a deeply empathetic wellness coach specialising in maternal health. You ALWAYS produce rich, detailed, deeply personalised analysis — even when entries are short. A mother writing just 20 words is still telling you something important. Your job is to honour that and respond with FULL depth.
 
-The mother has shared these journal entries:
+The mother has shared:
 """
 ${text}
 """
 
-IMPORTANT: Even if the entries are brief, you must still generate FULL, RICH, DETAILED content in every field. Use what she wrote as your anchor, then draw on your deep expertise in maternal wellbeing to expand with relevant, empathetic insights. Never return empty arrays. Never give generic platitudes — make it feel like you truly know her.
+RULES:
+- Every field must be filled with rich, specific, warm content
+- Never use generic phrases like "you're doing great" without grounding them in what she wrote
+- Even with short entries, expand using your deep knowledge of maternal wellbeing
+- Physical Wellbeing, Emotional State, Energy & Rest, Self Care — all 4 insights must be detailed
+- Priority actions must feel personally relevant to HER situation
+- Affirmation must reference something specific she wrote
 
-Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) with this exact structure:
+Return ONLY raw JSON — no markdown, no code fences, no explanation. Just the JSON object:
 {
-  "summary": "2-3 warm, specific sentences that reflect what she shared and acknowledge the reality of her week. Reference her actual words where possible.",
-  "todayFocus": "One powerful sentence about the single most important thing she needs to focus on today, based on her entries.",
+  "summary": "2-3 warm sentences that reflect exactly what she shared this week. Reference her words.",
+  "todayFocus": "One powerful, specific sentence about what she most needs today.",
   "todayActions": [
-    "Specific, concrete action tied to what she wrote — not generic",
-    "Another specific action she can take today",
-    "A third meaningful action for today"
+    "Concrete action 1 tied directly to what she wrote",
+    "Concrete action 2 she can do today",
+    "Concrete action 3 that will genuinely help her"
   ],
-  "todayAffirmation": "A warm, personal affirmation that speaks directly to her situation — using her own words or experiences as the foundation.",
+  "todayAffirmation": "A warm personalised affirmation using her actual words or experiences as the foundation.",
   "insights": [
     {
       "category": "Physical Wellbeing",
       "icon": "body-outline",
-      "detected": "What physical signals or themes came through in her entries, even implicitly",
-      "whyItMatters": "Why paying attention to this matters for a mother right now",
-      "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
+      "detected": "Detailed observation about her physical state from the entries — even implicit signals count",
+      "whyItMatters": "Why this specific physical pattern matters for a mother right now — be detailed",
+      "recommendations": ["Specific actionable recommendation", "Another specific recommendation"]
     },
     {
       "category": "Emotional State",
       "icon": "heart-outline",
-      "detected": "The emotional tone and patterns you detect — even from few words",
-      "whyItMatters": "Why this emotional pattern deserves attention",
-      "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
+      "detected": "The emotional tone and patterns detected — what is she really feeling beneath the words",
+      "whyItMatters": "Why attending to this emotional state is important — be detailed and caring",
+      "recommendations": ["Specific recommendation", "Another specific recommendation"]
     },
     {
       "category": "Energy & Rest",
       "icon": "moon-outline",
-      "detected": "What her entries suggest about her energy levels and rest, directly or indirectly",
-      "whyItMatters": "Why this matters for her and her family",
-      "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
+      "detected": "What her entries reveal about her energy and rest — directly or between the lines",
+      "whyItMatters": "Why managing energy and rest matters deeply for her and her family",
+      "recommendations": ["Specific recommendation", "Another specific recommendation"]
     },
     {
       "category": "Self Care",
       "icon": "leaf-outline",
-      "detected": "What her entries reveal about how she is (or isn't) caring for herself",
-      "whyItMatters": "Why self care at this stage of motherhood is critical",
-      "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
+      "detected": "What the entries show about how she is (or isn't) caring for herself",
+      "whyItMatters": "Why self care at this stage of motherhood is non-negotiable — be specific",
+      "recommendations": ["Specific recommendation", "Another specific recommendation"]
     }
   ],
   "priorityActions": [
-    {"rank": 1, "action": "The single most important thing she should do this week", "reason": "Why this is the top priority based on her entries"},
-    {"rank": 2, "action": "Second priority action", "reason": "Why this matters"},
+    {"rank": 1, "action": "The most important thing she should do this week", "reason": "Specific reason why this is top priority based on her entries"},
+    {"rank": 2, "action": "Second priority action", "reason": "Why this matters for her specifically"},
     {"rank": 3, "action": "Third priority action", "reason": "Why this matters"}
   ],
-  "advice": "A warm, detailed 3-4 sentence paragraph of overall weekly advice. Be specific, caring, and grounded in what she shared.",
+  "advice": "A warm, detailed 4-5 sentence paragraph of overall advice. Reference her actual situation. Be specific, caring, and empowering.",
   "alerts": [],
   "patterns": {
-    "moodDistribution": ["A description of the emotional tone patterns detected this week"],
-    "entryFrequency": ["An observation about her journaling frequency and what it might mean"]
+    "moodDistribution": ["Describe the emotional tone pattern detected across her entries"],
+    "entryFrequency": ["Observation about her journaling and what it reflects about her week"]
   }
-}`
-    : `You are a deeply empathetic wellness coach specialising in maternal health. You ALWAYS provide rich, detailed, deeply personalised analysis — even when entries are short.
-
-The mother has shared these recent journal entries:
-"""
-${text}
-"""
-
-IMPORTANT: Even if the entries are brief, generate FULL, RICH content in every field. Use her words as the anchor, expand with expert maternal wellbeing insights. Never return empty content. Make it feel personal.
-
-Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) with this exact structure:
-{
-  "summary": "2-3 warm, specific sentences reflecting what she shared today.",
-  "todayFocus": "One powerful sentence about the single most important thing she needs right now.",
-  "todayActions": [
-    "A specific action tied to what she wrote",
-    "Another concrete thing she can do today",
-    "A third meaningful action"
-  ],
-  "todayAffirmation": "A warm, personal affirmation rooted in her actual situation.",
-  "insights": [],
-  "priorityActions": [],
-  "advice": "A warm, detailed 3-4 sentence paragraph of advice for today, specific to what she shared.",
-  "alerts": [],
-  "patterns": { "moodDistribution": [], "entryFrequency": [] }
 }`;
 
   try {
@@ -132,8 +111,7 @@ Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) wit
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.7,
-            responseMimeType: "application/json",
+            temperature: 0.8,
           },
         }),
       }
