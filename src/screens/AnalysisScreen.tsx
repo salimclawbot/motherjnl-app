@@ -54,30 +54,7 @@ export default function AnalysisScreen({ navigation }: any) {
     }
   }, [loading]);
 
-  const checkEntries = useCallback(async () => {
-    if (!user) return;
-    const { count } = await supabase
-      .from("journal_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
-    const hasAny = (count ?? 0) > 0;
-    setHasEntries(hasAny);
-    return hasAny;
-  }, [user]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const init = async () => {
-        const hasAny = await checkEntries();
-        if (hasAny) {
-          await runAnalysis();
-        }
-      };
-      init();
-    }, [checkEntries])
-  );
-
-  const runAnalysis = async () => {
+  const runAnalysis = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setAnalysisFailed(false);
@@ -133,7 +110,26 @@ export default function AnalysisScreen({ navigation }: any) {
     }
     setLoading(false);
     spinValue.setValue(0);
-  };
+  }, [user]);
+
+  const checkAndRun = useCallback(async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from("journal_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    const hasAny = (count ?? 0) > 0;
+    setHasEntries(hasAny);
+    if (hasAny) {
+      await runAnalysis();
+    }
+  }, [user, runAnalysis]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkAndRun();
+    }, [checkAndRun])
+  );
 
   const spin = spinValue.interpolate({
     inputRange: [0, 1],
