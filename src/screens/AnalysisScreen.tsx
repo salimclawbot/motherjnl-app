@@ -12,9 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import { analyseEntry } from "../lib/gemini";
+import { analyseEntry, AnalysisResult } from "../lib/gemini";
+import { LinearGradient } from "expo-linear-gradient";
 
 type Tab = "summary" | "advice" | "patterns";
+type AdviceMode = "today" | "week";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -22,12 +24,8 @@ export default function AnalysisScreen({ navigation }: any) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<Tab>("summary");
-  const [analysis, setAnalysis] = useState<{
-    summary: string;
-    advice: string;
-    alerts: string[];
-    patterns?: { entryFrequency: string[] };
-  } | null>(null);
+  const [adviceMode, setAdviceMode] = useState<AdviceMode>("today");
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasEntries, setHasEntries] = useState<boolean | null>(null);
   const [dayFrequency, setDayFrequency] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
@@ -117,7 +115,7 @@ export default function AnalysisScreen({ navigation }: any) {
       )
       .join("\n\n");
 
-    const result = await analyseEntry(combinedText);
+    const result = await analyseEntry(combinedText, "week");
     if (result) {
       setAnalysis(result);
       setAnalysisFailed(false);
@@ -190,6 +188,136 @@ export default function AnalysisScreen({ navigation }: any) {
     </View>
   );
 
+  const renderAdviceModePill = () => (
+    <View style={styles.adviceModePill}>
+      <TouchableOpacity
+        style={[styles.adviceModeOption, adviceMode === "today" && styles.adviceModeOptionActive]}
+        onPress={() => setAdviceMode("today")}
+      >
+        <Text style={[styles.adviceModeText, adviceMode === "today" && styles.adviceModeTextActive]}>
+          Today
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.adviceModeOption, adviceMode === "week" && styles.adviceModeOptionActive]}
+        onPress={() => setAdviceMode("week")}
+      >
+        <Text style={[styles.adviceModeText, adviceMode === "week" && styles.adviceModeTextActive]}>
+          This Week
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderTodayAdvice = () => {
+    if (!analysis) return null;
+    return (
+      <View style={{ gap: 16 }}>
+        {/* Today's Focus */}
+        <LinearGradient
+          colors={["#D4847A", "#E8B4A0"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.focusCard}
+        >
+          <View style={styles.cardHeader}>
+            <Ionicons name="sunny-outline" size={22} color="#FFFFFF" />
+            <Text style={styles.focusHeading}>Today's Focus</Text>
+          </View>
+          <Text style={styles.focusText}>{analysis.todayFocus}</Text>
+        </LinearGradient>
+
+        {/* Today's Actions */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardIcon}>✅</Text>
+            <Text style={styles.cardHeading}>Your Actions for Today</Text>
+          </View>
+          {(analysis.todayActions ?? []).map((action, i) => (
+            <View key={i} style={styles.actionRow}>
+              <View style={styles.actionCircle}>
+                <Text style={styles.actionNumber}>{i + 1}</Text>
+              </View>
+              <Text style={styles.actionText}>{action}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Affirmation */}
+        <View style={styles.affirmationCard}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="heart" size={20} color="#A07090" />
+            <Text style={[styles.cardHeading, { color: "#6B4060" }]}>Your Affirmation</Text>
+          </View>
+          <Text style={styles.affirmationText}>{analysis.todayAffirmation}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderWeekAdvice = () => {
+    if (!analysis) return null;
+    return (
+      <View style={{ gap: 16 }}>
+        {/* Priority Actions */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="flag-outline" size={20} color="#D4847A" />
+            <Text style={styles.cardHeading}>Priority Actions</Text>
+          </View>
+          {(analysis.priorityActions ?? []).map((item) => (
+            <View key={item.rank} style={styles.priorityRow}>
+              <View style={styles.rankBadge}>
+                <Text style={styles.rankText}>{item.rank}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.priorityAction}>{item.action}</Text>
+                <Text style={styles.priorityReason}>{item.reason}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Deep Insights */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="analytics-outline" size={20} color="#D4847A" />
+            <Text style={styles.cardHeading}>Deep Insights</Text>
+          </View>
+          {(analysis.insights ?? []).map((insight, i) => (
+            <View key={i}>
+              {i > 0 && <View style={styles.insightSeparator} />}
+              <View style={styles.insightBlock}>
+                <View style={styles.insightHeader}>
+                  <Ionicons
+                    name={(insight.icon as any) ?? "ellipse-outline"}
+                    size={20}
+                    color="#D4847A"
+                  />
+                  <Text style={styles.insightCategory}>{insight.category}</Text>
+                </View>
+                <Text style={styles.insightLabel}>What we detected:</Text>
+                <Text style={styles.insightValue}>{insight.detected}</Text>
+                <Text style={styles.insightLabel}>Why it matters:</Text>
+                <Text style={styles.insightValue}>{insight.whyItMatters}</Text>
+                {(insight.recommendations ?? []).length > 0 && (
+                  <View style={{ marginTop: 8 }}>
+                    {insight.recommendations.map((rec, j) => (
+                      <View key={j} style={styles.recRow}>
+                        <Text style={styles.recBullet}>•</Text>
+                        <Text style={styles.recText}>{rec}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   const renderMoodChips = () => (
     <View style={styles.moodSection}>
       <Text style={styles.moodSectionTitle}>Mood Distribution</Text>
@@ -208,6 +336,34 @@ export default function AnalysisScreen({ navigation }: any) {
         ))}
       </View>
     </View>
+  );
+
+  const renderPatternsContent = () => (
+    <>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardIcon}>📊</Text>
+        <Text style={styles.cardHeading}>Entry Frequency</Text>
+      </View>
+      <View style={styles.chartContainer}>
+        {dayFrequency.map((count, i) => (
+          <View key={i} style={styles.barColumn}>
+            <View style={styles.barWrapper}>
+              <View
+                style={[
+                  styles.bar,
+                  {
+                    height: `${(count / maxFreq) * 100}%`,
+                    backgroundColor: count > 0 ? "#D4847A" : "#E8D5CE",
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.barLabel}>{DAY_LABELS[i]}</Text>
+          </View>
+        ))}
+      </View>
+      {renderMoodChips()}
+    </>
   );
 
   return (
@@ -247,32 +403,7 @@ export default function AnalysisScreen({ navigation }: any) {
             {activeTab === "summary" && renderSummaryPreview()}
             {activeTab === "advice" && renderAdvicePreview()}
             {activeTab === "patterns" && (
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardIcon}>📊</Text>
-                  <Text style={styles.cardHeading}>Entry Frequency</Text>
-                </View>
-                <View style={styles.chartContainer}>
-                  {dayFrequency.map((count, i) => (
-                    <View key={i} style={styles.barColumn}>
-                      <View style={styles.barWrapper}>
-                        <View
-                          style={[
-                            styles.bar,
-                            {
-                              height: `${(count / maxFreq) * 100}%`,
-                              backgroundColor:
-                                count > 0 ? "#D4847A" : "#E8D5CE",
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.barLabel}>{DAY_LABELS[i]}</Text>
-                    </View>
-                  ))}
-                </View>
-                {renderMoodChips()}
-              </View>
+              <View style={styles.card}>{renderPatternsContent()}</View>
             )}
           </>
         )}
@@ -287,32 +418,7 @@ export default function AnalysisScreen({ navigation }: any) {
             {activeTab === "summary" && renderSummaryPreview()}
             {activeTab === "advice" && renderAdvicePreview()}
             {activeTab === "patterns" && (
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardIcon}>📊</Text>
-                  <Text style={styles.cardHeading}>Entry Frequency</Text>
-                </View>
-                <View style={styles.chartContainer}>
-                  {dayFrequency.map((count, i) => (
-                    <View key={i} style={styles.barColumn}>
-                      <View style={styles.barWrapper}>
-                        <View
-                          style={[
-                            styles.bar,
-                            {
-                              height: `${(count / maxFreq) * 100}%`,
-                              backgroundColor:
-                                count > 0 ? "#D4847A" : "#E8D5CE",
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.barLabel}>{DAY_LABELS[i]}</Text>
-                    </View>
-                  ))}
-                </View>
-                {renderMoodChips()}
-              </View>
+              <View style={styles.card}>{renderPatternsContent()}</View>
             )}
           </>
         )}
@@ -334,54 +440,26 @@ export default function AnalysisScreen({ navigation }: any) {
 
         {analysis && !loading && (
           <>
-            <View style={styles.card}>
-              {activeTab === "summary" && (
-                <>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardIcon}>📋</Text>
-                    <Text style={styles.cardHeading}>Your Week at a Glance</Text>
-                  </View>
-                  <Text style={styles.cardText}>{analysis.summary}</Text>
-                </>
-              )}
-              {activeTab === "advice" && (
-                <>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardIcon}>💜</Text>
-                    <Text style={styles.cardHeading}>Gentle Guidance</Text>
-                  </View>
-                  <Text style={styles.cardText}>{analysis.advice}</Text>
-                </>
-              )}
-              {activeTab === "patterns" && (
-                <>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardIcon}>📊</Text>
-                    <Text style={styles.cardHeading}>Entry Frequency</Text>
-                  </View>
-                  <View style={styles.chartContainer}>
-                    {dayFrequency.map((count, i) => (
-                      <View key={i} style={styles.barColumn}>
-                        <View style={styles.barWrapper}>
-                          <View
-                            style={[
-                              styles.bar,
-                              {
-                                height: `${(count / maxFreq) * 100}%`,
-                                backgroundColor:
-                                  count > 0 ? "#D4847A" : "#E8D5CE",
-                              },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.barLabel}>{DAY_LABELS[i]}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  {renderMoodChips()}
-                </>
-              )}
-            </View>
+            {activeTab === "summary" && (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardIcon}>📋</Text>
+                  <Text style={styles.cardHeading}>Your Week at a Glance</Text>
+                </View>
+                <Text style={styles.cardText}>{analysis.summary}</Text>
+              </View>
+            )}
+
+            {activeTab === "advice" && (
+              <>
+                {renderAdviceModePill()}
+                {adviceMode === "today" ? renderTodayAdvice() : renderWeekAdvice()}
+              </>
+            )}
+
+            {activeTab === "patterns" && (
+              <View style={styles.card}>{renderPatternsContent()}</View>
+            )}
 
             <TouchableOpacity
               style={styles.refreshButton}
@@ -419,6 +497,7 @@ const styles = StyleSheet.create({
   },
   inner: {
     padding: 20,
+    paddingBottom: 40,
   },
   tabs: {
     flexDirection: "row",
@@ -664,5 +743,168 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#8B6E65",
     fontWeight: "500",
+  },
+  // Advice mode toggle pill
+  adviceModePill: {
+    flexDirection: "row",
+    backgroundColor: "#F0E4DC",
+    borderRadius: 24,
+    padding: 3,
+    marginBottom: 16,
+  },
+  adviceModeOption: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 22,
+    alignItems: "center",
+  },
+  adviceModeOptionActive: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  adviceModeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#8B6E65",
+  },
+  adviceModeTextActive: {
+    color: "#D4847A",
+  },
+  // Today focus card (rendered inside LinearGradient)
+  focusCard: {
+    borderRadius: 16,
+    padding: 24,
+  },
+  focusHeading: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  focusText: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    lineHeight: 24,
+  },
+  // Today actions
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  actionCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#D4847A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionNumber: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  actionText: {
+    flex: 1,
+    fontSize: 15,
+    color: "#2C1810",
+    lineHeight: 22,
+  },
+  // Affirmation card
+  affirmationCard: {
+    backgroundColor: "#F5ECF4",
+    borderRadius: 16,
+    padding: 24,
+  },
+  affirmationText: {
+    fontSize: 16,
+    color: "#6B4060",
+    lineHeight: 24,
+    fontStyle: "italic",
+  },
+  // Priority actions
+  priorityRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 14,
+  },
+  rankBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#D4847A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rankText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  priorityAction: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#2C1810",
+    lineHeight: 22,
+  },
+  priorityReason: {
+    fontSize: 13,
+    color: "#8B6E65",
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  // Insight blocks
+  insightSeparator: {
+    height: 1,
+    backgroundColor: "#F0E4DC",
+    marginVertical: 16,
+  },
+  insightBlock: {
+    marginBottom: 4,
+  },
+  insightHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  insightCategory: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2C1810",
+  },
+  insightLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#8B6E65",
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  insightValue: {
+    fontSize: 15,
+    color: "#2C1810",
+    lineHeight: 22,
+  },
+  recRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 4,
+  },
+  recBullet: {
+    fontSize: 15,
+    color: "#D4847A",
+    fontWeight: "700",
+  },
+  recText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#5C4033",
+    lineHeight: 20,
   },
 });

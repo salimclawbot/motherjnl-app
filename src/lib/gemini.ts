@@ -1,7 +1,26 @@
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? "";
 
-interface AnalysisResult {
+interface Insight {
+  category: string;
+  icon: string;
+  detected: string;
+  whyItMatters: string;
+  recommendations: string[];
+}
+
+interface PriorityAction {
+  rank: number;
+  action: string;
+  reason: string;
+}
+
+export interface AnalysisResult {
   summary: string;
+  todayFocus: string;
+  todayActions: string[];
+  todayAffirmation: string;
+  insights: Insight[];
+  priorityActions: PriorityAction[];
   advice: string;
   alerts: string[];
   patterns: {
@@ -10,17 +29,82 @@ interface AnalysisResult {
   };
 }
 
-export async function analyseEntry(text: string): Promise<AnalysisResult | null> {
-  const prompt = `You are a supportive wellness assistant for mothers. Analyse the following journal entries and return a JSON object with exactly these keys:
-- "summary": a brief empathetic summary of the mother's week
-- "advice": practical, gentle advice based on what she shared
-- "alerts": an array of strings flagging anything concerning (empty array if nothing concerning)
-- "patterns": an object with "moodDistribution" (array of strings describing mood patterns) and "entryFrequency" (array of strings describing journaling frequency observations)
+export async function analyseEntry(text: string, mode: "today" | "week" = "week"): Promise<AnalysisResult | null> {
+  const prompt = mode === "week"
+    ? `You are a deeply empathetic wellness coach for mothers. Analyse these journal entries and return a detailed JSON object.
 
-Journal entries:
-${text}
+The mother has shared: ${text}
 
-Respond ONLY with valid JSON, no markdown.`;
+Return JSON with this exact structure:
+{
+  "summary": "2-3 sentence empathetic overview of her week",
+  "todayFocus": "1 sentence about what she most needs today",
+  "todayActions": ["specific action 1", "specific action 2", "specific action 3"],
+  "todayAffirmation": "A warm personalised affirmation based on what she wrote",
+  "insights": [
+    {
+      "category": "Physical Wellbeing",
+      "icon": "body-outline",
+      "detected": "what was detected from her entries",
+      "whyItMatters": "brief explanation of why this is important",
+      "recommendations": ["specific recommendation 1", "specific recommendation 2"]
+    },
+    {
+      "category": "Emotional State",
+      "icon": "heart-outline",
+      "detected": "emotional patterns detected",
+      "whyItMatters": "why this matters",
+      "recommendations": ["rec 1", "rec 2"]
+    },
+    {
+      "category": "Energy & Rest",
+      "icon": "moon-outline",
+      "detected": "energy/sleep observations",
+      "whyItMatters": "why this matters",
+      "recommendations": ["rec 1", "rec 2"]
+    },
+    {
+      "category": "Self Care",
+      "icon": "leaf-outline",
+      "detected": "self care observations",
+      "whyItMatters": "why this matters",
+      "recommendations": ["rec 1", "rec 2"]
+    }
+  ],
+  "priorityActions": [
+    {"rank": 1, "action": "most important thing to do", "reason": "why"},
+    {"rank": 2, "action": "second priority", "reason": "why"},
+    {"rank": 3, "action": "third priority", "reason": "why"}
+  ],
+  "advice": "warm, detailed paragraph of overall advice (keep existing field for backwards compat)",
+  "alerts": ["alert 1 if any"],
+  "patterns": {
+    "moodDistribution": ["pattern description"],
+    "entryFrequency": ["frequency observation"]
+  }
+}
+
+Be SPECIFIC to what she actually wrote. Never give generic advice. Reference her actual words and experiences.
+Respond ONLY with valid JSON.`
+    : `You are a deeply empathetic wellness coach for mothers. Based on these recent journal entries, provide focused guidance for TODAY.
+
+The mother has shared: ${text}
+
+Return JSON with this exact structure:
+{
+  "summary": "2-3 sentence empathetic overview",
+  "todayFocus": "1 sentence about what she most needs today",
+  "todayActions": ["specific action 1", "specific action 2", "specific action 3"],
+  "todayAffirmation": "A warm personalised affirmation based on what she wrote",
+  "insights": [],
+  "priorityActions": [],
+  "advice": "warm paragraph of advice for today",
+  "alerts": [],
+  "patterns": { "moodDistribution": [], "entryFrequency": [] }
+}
+
+Be SPECIFIC to what she actually wrote. Never give generic advice. Reference her actual words and experiences.
+Respond ONLY with valid JSON.`;
 
   try {
     const response = await fetch(
