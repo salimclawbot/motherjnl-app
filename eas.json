@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "ios": {
+        "credentialsSource": "local"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascApiKeyPath": "/Users/openclaw/.openclaw/shared-memory-dragons/config/apple-keys/AuthKey_GTX57RY77H.p8",
+        "ascApiKeyIssuerId": "d26ef6c1-5451-40da-b81b-ca624e734e7e",
+        "ascApiKeyId": "GTX57RY77H"
+      }
+    }
+  }
+}

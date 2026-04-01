@@ -29,82 +29,99 @@ export interface AnalysisResult {
   };
 }
 
+function stripJsonMarkdown(text: string): string {
+  // Strip ```json ... ``` or ``` ... ``` wrappers Gemini sometimes adds
+  return text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+}
+
 export async function analyseEntry(text: string, mode: "today" | "week" = "week"): Promise<AnalysisResult | null> {
   const prompt = mode === "week"
-    ? `You are a deeply empathetic wellness coach for mothers. Analyse these journal entries and return a detailed JSON object.
+    ? `You are a deeply empathetic wellness coach specialising in maternal health. You ALWAYS provide rich, detailed, deeply personalised analysis — even when entries are short. Short entries reveal just as much as long ones: what someone chooses to write (or not write) tells a story.
 
-The mother has shared: ${text}
+The mother has shared these journal entries:
+"""
+${text}
+"""
 
-Return JSON with this exact structure:
+IMPORTANT: Even if the entries are brief, you must still generate FULL, RICH, DETAILED content in every field. Use what she wrote as your anchor, then draw on your deep expertise in maternal wellbeing to expand with relevant, empathetic insights. Never return empty arrays. Never give generic platitudes — make it feel like you truly know her.
+
+Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) with this exact structure:
 {
-  "summary": "2-3 sentence empathetic overview of her week",
-  "todayFocus": "1 sentence about what she most needs today",
-  "todayActions": ["specific action 1", "specific action 2", "specific action 3"],
-  "todayAffirmation": "A warm personalised affirmation based on what she wrote",
+  "summary": "2-3 warm, specific sentences that reflect what she shared and acknowledge the reality of her week. Reference her actual words where possible.",
+  "todayFocus": "One powerful sentence about the single most important thing she needs to focus on today, based on her entries.",
+  "todayActions": [
+    "Specific, concrete action tied to what she wrote — not generic",
+    "Another specific action she can take today",
+    "A third meaningful action for today"
+  ],
+  "todayAffirmation": "A warm, personal affirmation that speaks directly to her situation — using her own words or experiences as the foundation.",
   "insights": [
     {
       "category": "Physical Wellbeing",
       "icon": "body-outline",
-      "detected": "what was detected from her entries",
-      "whyItMatters": "brief explanation of why this is important",
-      "recommendations": ["specific recommendation 1", "specific recommendation 2"]
+      "detected": "What physical signals or themes came through in her entries, even implicitly",
+      "whyItMatters": "Why paying attention to this matters for a mother right now",
+      "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
     },
     {
       "category": "Emotional State",
       "icon": "heart-outline",
-      "detected": "emotional patterns detected",
-      "whyItMatters": "why this matters",
-      "recommendations": ["rec 1", "rec 2"]
+      "detected": "The emotional tone and patterns you detect — even from few words",
+      "whyItMatters": "Why this emotional pattern deserves attention",
+      "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
     },
     {
       "category": "Energy & Rest",
       "icon": "moon-outline",
-      "detected": "energy/sleep observations",
-      "whyItMatters": "why this matters",
-      "recommendations": ["rec 1", "rec 2"]
+      "detected": "What her entries suggest about her energy levels and rest, directly or indirectly",
+      "whyItMatters": "Why this matters for her and her family",
+      "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
     },
     {
       "category": "Self Care",
       "icon": "leaf-outline",
-      "detected": "self care observations",
-      "whyItMatters": "why this matters",
-      "recommendations": ["rec 1", "rec 2"]
+      "detected": "What her entries reveal about how she is (or isn't) caring for herself",
+      "whyItMatters": "Why self care at this stage of motherhood is critical",
+      "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
     }
   ],
   "priorityActions": [
-    {"rank": 1, "action": "most important thing to do", "reason": "why"},
-    {"rank": 2, "action": "second priority", "reason": "why"},
-    {"rank": 3, "action": "third priority", "reason": "why"}
+    {"rank": 1, "action": "The single most important thing she should do this week", "reason": "Why this is the top priority based on her entries"},
+    {"rank": 2, "action": "Second priority action", "reason": "Why this matters"},
+    {"rank": 3, "action": "Third priority action", "reason": "Why this matters"}
   ],
-  "advice": "warm, detailed paragraph of overall advice (keep existing field for backwards compat)",
-  "alerts": ["alert 1 if any"],
+  "advice": "A warm, detailed 3-4 sentence paragraph of overall weekly advice. Be specific, caring, and grounded in what she shared.",
+  "alerts": [],
   "patterns": {
-    "moodDistribution": ["pattern description"],
-    "entryFrequency": ["frequency observation"]
+    "moodDistribution": ["A description of the emotional tone patterns detected this week"],
+    "entryFrequency": ["An observation about her journaling frequency and what it might mean"]
   }
-}
+}`
+    : `You are a deeply empathetic wellness coach specialising in maternal health. You ALWAYS provide rich, detailed, deeply personalised analysis — even when entries are short.
 
-Be SPECIFIC to what she actually wrote. Never give generic advice. Reference her actual words and experiences.
-Respond ONLY with valid JSON.`
-    : `You are a deeply empathetic wellness coach for mothers. Based on these recent journal entries, provide focused guidance for TODAY.
+The mother has shared these recent journal entries:
+"""
+${text}
+"""
 
-The mother has shared: ${text}
+IMPORTANT: Even if the entries are brief, generate FULL, RICH content in every field. Use her words as the anchor, expand with expert maternal wellbeing insights. Never return empty content. Make it feel personal.
 
-Return JSON with this exact structure:
+Return ONLY a valid JSON object (no markdown, no code blocks, no extra text) with this exact structure:
 {
-  "summary": "2-3 sentence empathetic overview",
-  "todayFocus": "1 sentence about what she most needs today",
-  "todayActions": ["specific action 1", "specific action 2", "specific action 3"],
-  "todayAffirmation": "A warm personalised affirmation based on what she wrote",
+  "summary": "2-3 warm, specific sentences reflecting what she shared today.",
+  "todayFocus": "One powerful sentence about the single most important thing she needs right now.",
+  "todayActions": [
+    "A specific action tied to what she wrote",
+    "Another concrete thing she can do today",
+    "A third meaningful action"
+  ],
+  "todayAffirmation": "A warm, personal affirmation rooted in her actual situation.",
   "insights": [],
   "priorityActions": [],
-  "advice": "warm paragraph of advice for today",
+  "advice": "A warm, detailed 3-4 sentence paragraph of advice for today, specific to what she shared.",
   "alerts": [],
   "patterns": { "moodDistribution": [], "entryFrequency": [] }
-}
-
-Be SPECIFIC to what she actually wrote. Never give generic advice. Reference her actual words and experiences.
-Respond ONLY with valid JSON.`;
+}`;
 
   try {
     const response = await fetch(
@@ -114,6 +131,10 @@ Respond ONLY with valid JSON.`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            responseMimeType: "application/json",
+          },
         }),
       }
     );
@@ -132,7 +153,8 @@ Respond ONLY with valid JSON.`;
       return null;
     }
 
-    return JSON.parse(responseText) as AnalysisResult;
+    const cleaned = stripJsonMarkdown(responseText);
+    return JSON.parse(cleaned) as AnalysisResult;
   } catch (error) {
     console.error("analyseEntry failed:", error);
     return null;
