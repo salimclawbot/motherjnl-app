@@ -314,51 +314,170 @@ export default function AnalysisScreen({ navigation }: any) {
     );
   };
 
-  const renderMoodChips = () => (
-    <View style={styles.moodSection}>
-      <Text style={styles.moodSectionTitle}>Mood Distribution</Text>
-      <View style={styles.moodChipsContainer}>
-        {[
-          { label: "Calm", emoji: "😌" },
-          { label: "Happy", emoji: "😊" },
-          { label: "Tired", emoji: "😴" },
-          { label: "Anxious", emoji: "😰" },
-        ].map((mood) => (
-          <View key={mood.label} style={styles.moodChip}>
-            <Text style={styles.moodChipText}>
-              {mood.label} {mood.emoji}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
+  const MOOD_DATA = [
+    { label: "Calm", emoji: "😌", color: "#A8D8B9", value: 0 },
+    { label: "Happy", emoji: "😊", color: "#FFD966", value: 0 },
+    { label: "Tired", emoji: "😴", color: "#B8A9C9", value: 0 },
+    { label: "Anxious", emoji: "😰", color: "#F4A261", value: 0 },
+    { label: "Stressed", emoji: "😤", color: "#E07070", value: 0 },
+    { label: "Grateful", emoji: "🙏", color: "#81B29A", value: 0 },
+  ];
+
+  const SLEEP_DATA = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, i) => ({
+    day: d,
+    hours: 0,
+  }));
+
+  const ENERGY_DATA = [
+    { label: "Week 1", value: 0 },
+    { label: "Week 2", value: 0 },
+    { label: "Week 3", value: 0 },
+    { label: "Week 4", value: 0 },
+  ];
 
   const renderPatternsContent = () => (
     <>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardIcon}>📊</Text>
-        <Text style={styles.cardHeading}>Entry Frequency</Text>
-      </View>
-      <View style={styles.chartContainer}>
-        {dayFrequency.map((count, i) => (
-          <View key={i} style={styles.barColumn}>
-            <View style={styles.barWrapper}>
-              <View
-                style={[
-                  styles.bar,
-                  {
-                    height: `${(count / maxFreq) * 100}%`,
-                    backgroundColor: count > 0 ? "#D4847A" : "#E8D5CE",
-                  },
-                ]}
-              />
+      {/* Chart 1: Entry Frequency */}
+      <View style={styles.patternCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardIcon}>📊</Text>
+          <Text style={styles.cardHeading}>Entry Frequency</Text>
+        </View>
+        <Text style={styles.chartSubtitle}>Entries per day this week</Text>
+        <View style={styles.chartContainer}>
+          {dayFrequency.map((count, i) => (
+            <View key={i} style={styles.barColumn}>
+              <View style={styles.barWrapper}>
+                <View
+                  style={[
+                    styles.bar,
+                    {
+                      height: count > 0 ? `${(count / maxFreq) * 100}%` : 6,
+                      backgroundColor: count > 0 ? "#D4847A" : "#E8D5CE",
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.barLabel}>{DAY_LABELS[i]}</Text>
             </View>
-            <Text style={styles.barLabel}>{DAY_LABELS[i]}</Text>
-          </View>
-        ))}
+          ))}
+        </View>
+        <Text style={styles.emptyChartNote}>📝 Keep journaling to see your weekly patterns</Text>
       </View>
-      {renderMoodChips()}
+
+      {/* Chart 2: Mood Distribution */}
+      <View style={styles.patternCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardIcon}>🎭</Text>
+          <Text style={styles.cardHeading}>Mood Distribution</Text>
+        </View>
+        <Text style={styles.chartSubtitle}>How you've been feeling</Text>
+        <View style={styles.moodBarsContainer}>
+          {MOOD_DATA.map((mood) => (
+            <View key={mood.label} style={styles.moodBarRow}>
+              <Text style={styles.moodBarEmoji}>{mood.emoji}</Text>
+              <Text style={styles.moodBarLabel}>{mood.label}</Text>
+              <View style={styles.moodBarTrack}>
+                <View style={[styles.moodBarFill, { width: "0%", backgroundColor: mood.color }]} />
+              </View>
+              <Text style={styles.moodBarValue}>—</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.emptyChartNote}>💜 Log moods in your entries to populate this</Text>
+      </View>
+
+      {/* Chart 3: Sleep Quality */}
+      <View style={styles.patternCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardIcon}>🌙</Text>
+          <Text style={styles.cardHeading}>Sleep Quality</Text>
+        </View>
+        <Text style={styles.chartSubtitle}>Hours of rest per night</Text>
+        <View style={styles.chartContainer}>
+          {SLEEP_DATA.map((d, i) => (
+            <View key={i} style={styles.barColumn}>
+              <View style={styles.barWrapper}>
+                <View style={[styles.bar, { height: 6, backgroundColor: "#B8A9C9" }]} />
+              </View>
+              <Text style={styles.barLabel}>{d.day}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.emptyChartNote}>😴 Mention your sleep in entries to track rest</Text>
+      </View>
+
+      {/* Chart 4: Energy Levels */}
+      <View style={styles.patternCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardIcon}>⚡</Text>
+          <Text style={styles.cardHeading}>Energy Levels</Text>
+        </View>
+        <Text style={styles.chartSubtitle}>Weekly energy trend</Text>
+        <View style={styles.energyChartContainer}>
+          {ENERGY_DATA.map((d, i) => (
+            <View key={i} style={styles.energyBarColumn}>
+              <View style={styles.energyBarWrapper}>
+                <View style={[styles.energyBar, { height: 6, backgroundColor: "#FFD966" }]} />
+              </View>
+              <Text style={styles.barLabel}>{d.label}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.emptyChartNote}>⚡ Note your energy levels to see trends over time</Text>
+      </View>
+
+      {/* Chart 5: Stress Indicators */}
+      <View style={styles.patternCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardIcon}>🌊</Text>
+          <Text style={styles.cardHeading}>Stress Indicators</Text>
+        </View>
+        <Text style={styles.chartSubtitle}>Stress mentions detected in entries</Text>
+        <View style={styles.chartContainer}>
+          {DAY_LABELS.map((day, i) => (
+            <View key={i} style={styles.barColumn}>
+              <View style={styles.barWrapper}>
+                <View style={[styles.bar, { height: 6, backgroundColor: "#F4A261" }]} />
+              </View>
+              <Text style={styles.barLabel}>{day}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.emptyChartNote}>🌊 Stress patterns will appear as you journal more</Text>
+      </View>
+
+      {/* Chart 6: Wellbeing Score */}
+      <View style={styles.patternCard}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardIcon}>💚</Text>
+          <Text style={styles.cardHeading}>Wellbeing Score</Text>
+        </View>
+        <Text style={styles.chartSubtitle}>Your overall wellbeing this week</Text>
+        <View style={styles.wellbeingContainer}>
+          <View style={styles.wellbeingCircle}>
+            <Text style={styles.wellbeingScore}>—</Text>
+            <Text style={styles.wellbeingLabel}>/ 100</Text>
+          </View>
+          <View style={styles.wellbeingBreakdown}>
+            {[
+              { label: "Physical", color: "#D4847A", pct: 0 },
+              { label: "Emotional", color: "#A8D8B9", pct: 0 },
+              { label: "Social", color: "#FFD966", pct: 0 },
+              { label: "Rest", color: "#B8A9C9", pct: 0 },
+            ].map((item) => (
+              <View key={item.label} style={styles.wellbeingRow}>
+                <View style={[styles.wellbeingDot, { backgroundColor: item.color }]} />
+                <Text style={styles.wellbeingRowLabel}>{item.label}</Text>
+                <View style={styles.wellbeingTrack}>
+                  <View style={[styles.wellbeingFill, { width: "5%", backgroundColor: item.color }]} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+        <Text style={styles.emptyChartNote}>💚 Score builds up after 7+ days of journaling</Text>
+      </View>
     </>
   );
 
@@ -399,7 +518,7 @@ export default function AnalysisScreen({ navigation }: any) {
             {activeTab === "summary" && renderSummaryPreview()}
             {activeTab === "advice" && renderAdvicePreview()}
             {activeTab === "patterns" && (
-              <View style={styles.card}>{renderPatternsContent()}</View>
+              {renderPatternsContent()}
             )}
           </>
         )}
@@ -414,7 +533,7 @@ export default function AnalysisScreen({ navigation }: any) {
             {activeTab === "summary" && renderSummaryPreview()}
             {activeTab === "advice" && renderAdvicePreview()}
             {activeTab === "patterns" && (
-              <View style={styles.card}>{renderPatternsContent()}</View>
+              {renderPatternsContent()}
             )}
           </>
         )}
@@ -454,7 +573,7 @@ export default function AnalysisScreen({ navigation }: any) {
             )}
 
             {activeTab === "patterns" && (
-              <View style={styles.card}>{renderPatternsContent()}</View>
+              {renderPatternsContent()}
             )}
 
             <TouchableOpacity
@@ -902,5 +1021,146 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#5C4033",
     lineHeight: 20,
+  },
+  // Patterns tab
+  patternCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#D4847A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  chartSubtitle: {
+    fontSize: 13,
+    color: "#8B6E65",
+    marginBottom: 14,
+    marginTop: -8,
+  },
+  emptyChartNote: {
+    fontSize: 12,
+    color: "#B09A90",
+    marginTop: 10,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  // Mood bars
+  moodBarsContainer: {
+    gap: 10,
+  },
+  moodBarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  moodBarEmoji: {
+    fontSize: 16,
+    width: 22,
+  },
+  moodBarLabel: {
+    fontSize: 13,
+    color: "#2C1810",
+    width: 60,
+    fontWeight: "500",
+  },
+  moodBarTrack: {
+    flex: 1,
+    height: 10,
+    backgroundColor: "#F0E4DC",
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  moodBarFill: {
+    height: 10,
+    borderRadius: 5,
+    minWidth: 4,
+  },
+  moodBarValue: {
+    fontSize: 12,
+    color: "#8B6E65",
+    width: 20,
+    textAlign: "right",
+  },
+  // Energy chart
+  energyChartContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    height: 100,
+    marginTop: 8,
+  },
+  energyBarColumn: {
+    flex: 1,
+    alignItems: "center",
+  },
+  energyBarWrapper: {
+    width: 32,
+    height: 80,
+    justifyContent: "flex-end",
+  },
+  energyBar: {
+    width: 32,
+    borderRadius: 6,
+    minHeight: 6,
+  },
+  // Wellbeing score
+  wellbeingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginTop: 8,
+  },
+  wellbeingCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: "#E8D5CE",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FDF6F0",
+  },
+  wellbeingScore: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#D4847A",
+  },
+  wellbeingLabel: {
+    fontSize: 11,
+    color: "#8B6E65",
+  },
+  wellbeingBreakdown: {
+    flex: 1,
+    gap: 8,
+  },
+  wellbeingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  wellbeingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  wellbeingRowLabel: {
+    fontSize: 12,
+    color: "#5C4033",
+    width: 60,
+  },
+  wellbeingTrack: {
+    flex: 1,
+    height: 8,
+    backgroundColor: "#F0E4DC",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  wellbeingFill: {
+    height: 8,
+    borderRadius: 4,
+    minWidth: 4,
   },
 });
