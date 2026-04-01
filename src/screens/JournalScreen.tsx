@@ -53,7 +53,12 @@ export default function JournalScreen({ navigation }: any) {
       <FlatList
         data={entries}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <EntryCard entry={item} />}
+        renderItem={({ item }) => (
+          <EntryCard
+            entry={item}
+            onPress={() => navigation.navigate("EntryDetail", { entry: item })}
+          />
+        )}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl

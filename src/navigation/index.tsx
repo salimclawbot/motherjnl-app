@@ -9,6 +9,7 @@ import LoginScreen from "../screens/LoginScreen";
 import SignupScreen from "../screens/SignupScreen";
 import JournalScreen from "../screens/JournalScreen";
 import NewEntryScreen from "../screens/NewEntryScreen";
+import EntryDetailScreen from "../screens/EntryDetailScreen";
 import AnalysisScreen from "../screens/AnalysisScreen";
 import AlertsScreen from "../screens/AlertsScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -37,6 +38,11 @@ function JournalStackScreen() {
         name="NewEntry"
         component={NewEntryScreen}
         options={{ title: "New Entry" }}
+      />
+      <JournalStack.Screen
+        name="EntryDetail"
+        component={EntryDetailScreen}
+        options={{ title: "Entry" }}
       />
     </JournalStack.Navigator>
   );

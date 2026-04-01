@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
 interface Props {
   entry: {
@@ -8,9 +8,10 @@ interface Props {
     audio_url: string | null;
     created_at: string;
   };
+  onPress?: () => void;
 }
 
-export default function EntryCard({ entry }: Props) {
+export default function EntryCard({ entry, onPress }: Props) {
   const date = new Date(entry.created_at);
   const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "short",
@@ -23,7 +24,7 @@ export default function EntryCard({ entry }: Props) {
   });
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
         <Text style={styles.date}>{formattedDate}</Text>
         <View style={styles.metaRow}>
@@ -34,7 +35,7 @@ export default function EntryCard({ entry }: Props) {
       <Text style={styles.content} numberOfLines={4}>
         {entry.content}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 

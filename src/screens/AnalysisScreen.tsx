@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { analyseEntry } from "../lib/gemini";
@@ -22,6 +23,22 @@ export default function AnalysisScreen({ navigation }: any) {
     alerts: string[];
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hasEntries, setHasEntries] = useState<boolean | null>(null);
+
+  const checkEntries = useCallback(async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from("journal_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    setHasEntries((count ?? 0) > 0);
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkEntries();
+    }, [checkEntries])
+  );
 
   const runAnalysis = async () => {
     if (!user) return;
@@ -57,15 +74,30 @@ export default function AnalysisScreen({ navigation }: any) {
     try {
       const result = await analyseEntry(combinedText);
       setAnalysis(result);
-    } catch {
+    } catch (error) {
+      console.error("Analysis failed:", error);
       setAnalysis({
         summary: "Unable to analyse entries right now.",
-        advice: "Please try again later.",
+        advice:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred. Please try again.",
         alerts: [],
       });
     }
     setLoading(false);
   };
+
+  if (hasEntries === false) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyTitle}>No entries yet</Text>
+        <Text style={styles.emptySubtext}>
+          Write your first journal entry to get AI insights
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
@@ -102,30 +134,39 @@ export default function AnalysisScreen({ navigation }: any) {
       )}
 
       {analysis && !loading && (
-        <View style={styles.card}>
-          {activeTab === "summary" && (
-            <Text style={styles.cardText}>{analysis.summary}</Text>
-          )}
-          {activeTab === "advice" && (
-            <Text style={styles.cardText}>{analysis.advice}</Text>
-          )}
-          {activeTab === "patterns" && (
-            <>
-              {analysis.alerts.length > 0 ? (
-                analysis.alerts.map((alert, i) => (
-                  <View key={i} style={styles.alertItem}>
-                    <Text style={styles.alertDot}>•</Text>
-                    <Text style={styles.cardText}>{alert}</Text>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.cardText}>
-                  No patterns or concerns flagged. Keep up the good work!
-                </Text>
-              )}
-            </>
-          )}
-        </View>
+        <>
+          <View style={styles.card}>
+            {activeTab === "summary" && (
+              <Text style={styles.cardText}>{analysis.summary}</Text>
+            )}
+            {activeTab === "advice" && (
+              <Text style={styles.cardText}>{analysis.advice}</Text>
+            )}
+            {activeTab === "patterns" && (
+              <>
+                {analysis.alerts.length > 0 ? (
+                  analysis.alerts.map((alert, i) => (
+                    <View key={i} style={styles.alertItem}>
+                      <Text style={styles.alertDot}>•</Text>
+                      <Text style={styles.cardText}>{alert}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.cardText}>
+                    No patterns or concerns flagged. Keep up the good work!
+                  </Text>
+                )}
+              </>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={runAnalysis}
+          >
+            <Text style={styles.refreshButtonText}>Refresh</Text>
+          </TouchableOpacity>
+        </>
       )}
     </ScrollView>
   );
@@ -209,5 +250,37 @@ const styles = StyleSheet.create({
     color: "#D4847A",
     fontSize: 16,
     fontWeight: "700",
+  },
+  refreshButton: {
+    borderWidth: 1.5,
+    borderColor: "#D4847A",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  refreshButtonText: {
+    color: "#D4847A",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    flex: 1,
+    backgroundColor: "#F9F0E8",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#4A4A4A",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: "#999",
+    textAlign: "center",
+    lineHeight: 22,
   },
 });
