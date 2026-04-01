@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface Props {
   entry: {
@@ -26,9 +27,17 @@ export default function EntryCard({ entry, onPress }: Props) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
-        <Text style={styles.date}>{formattedDate}</Text>
+        <View style={styles.dateContainer}>
+          <Ionicons name="calendar-outline" size={14} color="#8B6E65" />
+          <Text style={styles.date}>{formattedDate}</Text>
+        </View>
         <View style={styles.metaRow}>
-          {entry.audio_url && <Text style={styles.voiceBadge}>Voice</Text>}
+          {entry.audio_url && (
+            <View style={styles.voiceBadge}>
+              <Ionicons name="mic" size={11} color="#FFFFFF" />
+              <Text style={styles.voiceBadgeText}>Voice</Text>
+            </View>
+          )}
           <Text style={styles.time}>{formattedTime}</Text>
         </View>
       </View>
@@ -41,26 +50,31 @@ export default function EntryCard({ entry, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFF",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: "#D4847A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  dateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   date: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#D4847A",
+    color: "#8B6E65",
   },
   metaRow: {
     flexDirection: "row",
@@ -68,22 +82,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   voiceBadge: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#FFF",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     backgroundColor: "#D4847A",
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    overflow: "hidden",
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  voiceBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   time: {
     fontSize: 12,
-    color: "#999",
+    color: "#8B6E65",
   },
   content: {
     fontSize: 15,
-    color: "#4A4A4A",
+    color: "#2C1810",
     lineHeight: 22,
   },
 });

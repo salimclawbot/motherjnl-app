@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 
 import LoginScreen from "../screens/LoginScreen";
@@ -25,24 +26,24 @@ function JournalStackScreen() {
     <JournalStack.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: "#F9F0E8" },
-        headerTintColor: "#4A4A4A",
+        headerTintColor: "#2C1810",
         headerShadowVisible: false,
       }}
     >
       <JournalStack.Screen
         name="JournalList"
         component={JournalScreen}
-        options={{ title: "Journal" }}
+        options={{ headerShown: false }}
       />
       <JournalStack.Screen
         name="NewEntry"
         component={NewEntryScreen}
-        options={{ title: "New Entry" }}
+        options={{ headerShown: false }}
       />
       <JournalStack.Screen
         name="EntryDetail"
         component={EntryDetailScreen}
-        options={{ title: "Entry" }}
+        options={{ headerShown: false }}
       />
     </JournalStack.Navigator>
   );
@@ -53,13 +54,26 @@ function TabNavigator() {
     <MainTab.Navigator
       screenOptions={{
         tabBarActiveTintColor: "#D4847A",
-        tabBarInactiveTintColor: "#999",
+        tabBarInactiveTintColor: "#8B6E65",
         tabBarStyle: {
-          backgroundColor: "#FFF",
-          borderTopColor: "#EEE",
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 0,
+          elevation: 20,
+          shadowColor: "#D4847A",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          height: 88,
+          paddingBottom: 28,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+          marginTop: 2,
         },
         headerStyle: { backgroundColor: "#F9F0E8" },
-        headerTintColor: "#4A4A4A",
+        headerTintColor: "#2C1810",
         headerShadowVisible: false,
       }}
     >
@@ -69,22 +83,59 @@ function TabNavigator() {
         options={{
           headerShown: false,
           tabBarLabel: "Journal",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "book" : "book-outline"}
+              size={24}
+              color={color}
+            />
+          ),
         }}
       />
       <MainTab.Screen
         name="Analysis"
         component={AnalysisScreen}
-        options={{ tabBarLabel: "Analysis" }}
+        options={{
+          headerShown: false,
+          tabBarLabel: "Analysis",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "sparkles" : "sparkles-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
       />
       <MainTab.Screen
         name="Alerts"
         component={AlertsScreen}
-        options={{ tabBarLabel: "Alerts" }}
+        options={{
+          headerShown: false,
+          tabBarLabel: "Alerts",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "notifications" : "notifications-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
       />
       <MainTab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarLabel: "Profile" }}
+        options={{
+          headerShown: false,
+          tabBarLabel: "Profile",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "person-circle" : "person-circle-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
       />
     </MainTab.Navigator>
   );
@@ -95,7 +146,7 @@ function AuthNavigator() {
     <AuthStack.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: "#F9F0E8" },
-        headerTintColor: "#4A4A4A",
+        headerTintColor: "#2C1810",
         headerShadowVisible: false,
       }}
     >
