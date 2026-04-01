@@ -67,15 +67,13 @@ export default function AnalysisScreen({ navigation }: any) {
       })
     ).start();
 
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
+    // Fetch ALL entries (no date restriction) so analysis always works
     const { data } = await supabase
       .from("journal_entries")
       .select("content, created_at")
       .eq("user_id", user.id)
-      .gte("created_at", weekAgo.toISOString())
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(50);
 
     if (!data || data.length === 0) {
       setAnalysis(null);
@@ -114,15 +112,9 @@ export default function AnalysisScreen({ navigation }: any) {
 
   const checkAndRun = useCallback(async () => {
     if (!user) return;
-    const { count } = await supabase
-      .from("journal_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
-    const hasAny = (count ?? 0) > 0;
-    setHasEntries(hasAny);
-    if (hasAny) {
-      await runAnalysis();
-    }
+    // Always attempt analysis - runAnalysis handles the empty case gracefully
+    setHasEntries(true);
+    await runAnalysis();
   }, [user, runAnalysis]);
 
   useFocusEffect(
