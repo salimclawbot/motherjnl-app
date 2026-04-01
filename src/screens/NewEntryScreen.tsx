@@ -8,9 +8,9 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import * as FileSystem from "expo-file-system";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import { transcribeAudio } from "../lib/gemini";
 import VoiceRecorder from "../components/VoiceRecorder";
 
 type Mode = "text" | "voice";
@@ -20,23 +20,38 @@ export default function NewEntryScreen({ navigation }: any) {
   const [mode, setMode] = useState<Mode>("text");
   const [content, setContent] = useState("");
   const [audioUri, setAudioUri] = useState<string | null>(null);
+  const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleRecordingComplete = async (uri: string) => {
     setAudioUri(uri);
-    setTranscribing(true);
+    setUploading(true);
     try {
-      const text = await transcribeAudio(uri);
-      setContent(text);
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const timestamp = Date.now();
+      const filePath = `${user!.id}/${timestamp}.m4a`;
+      const { error: uploadError } = await supabase.storage
+        .from("audio-recordings")
+        .upload(filePath, Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)), {
+          contentType: "audio/m4a",
+        });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage
+        .from("audio-recordings")
+        .getPublicUrl(filePath);
+      setUploadedAudioUrl(urlData.publicUrl);
+      setContent("Voice recording");
     } catch {
-      Alert.alert("Error", "Failed to transcribe audio. You can edit the text manually.");
+      Alert.alert("Error", "Failed to upload audio. Please try again.");
     }
-    setTranscribing(false);
+    setUploading(false);
   };
 
   const handleSave = async () => {
-    if (!content.trim()) {
+    if (!content.trim() && !uploadedAudioUrl) {
       Alert.alert("Error", "Please add some content to your entry");
       return;
     }
@@ -45,8 +60,9 @@ export default function NewEntryScreen({ navigation }: any) {
     setSaving(true);
     const { error } = await supabase.from("journal_entries").insert({
       user_id: user.id,
-      content: content.trim(),
-      audio_url: audioUri,
+      content: content.trim() || "Voice recording",
+      audio_url: uploadedAudioUrl,
+      entry_type: uploadedAudioUrl ? "voice" : "text",
     });
     setSaving(false);
 
@@ -92,8 +108,8 @@ export default function NewEntryScreen({ navigation }: any) {
         <VoiceRecorder onRecordingComplete={handleRecordingComplete} />
       )}
 
-      {transcribing && (
-        <Text style={styles.transcribingText}>Transcribing audio...</Text>
+      {uploading && (
+        <Text style={styles.transcribingText}>Uploading audio...</Text>
       )}
 
       <TextInput

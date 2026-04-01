@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,25 +7,15 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { analyseEntry } from "../lib/gemini";
-import { checkSubscription, SubscriptionTier } from "../lib/revenuecat";
-import UpgradePrompt from "../components/UpgradePrompt";
 
 export default function AlertsScreen({ navigation }: any) {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tier, setTier] = useState<SubscriptionTier>("free");
   const [fetched, setFetched] = useState(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      checkSubscription().then(setTier);
-    }, [])
-  );
 
   const fetchAlerts = async () => {
     if (!user) return;
@@ -64,17 +54,6 @@ export default function AlertsScreen({ navigation }: any) {
     setLoading(false);
     setFetched(true);
   };
-
-  if (tier === "free") {
-    return (
-      <View style={styles.container}>
-        <UpgradePrompt
-          feature="AI Alerts"
-          onUpgrade={() => navigation.navigate("Paywall" as never)}
-        />
-      </View>
-    );
-  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>

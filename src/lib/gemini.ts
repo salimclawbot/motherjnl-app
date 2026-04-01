@@ -1,29 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import * as FileSystem from "expo-file-system";
 
 const genAI = new GoogleGenerativeAI(
   process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? ""
 );
-
-export async function transcribeAudio(audioUri: string): Promise<string> {
-  const base64 = await FileSystem.readAsStringAsync(audioUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-  const result = await model.generateContent([
-    {
-      inlineData: {
-        mimeType: "audio/m4a",
-        data: base64,
-      },
-    },
-    "Transcribe this audio recording accurately. Return only the transcription text, nothing else.",
-  ]);
-
-  return result.response.text();
-}
 
 interface AnalysisResult {
   summary: string;
