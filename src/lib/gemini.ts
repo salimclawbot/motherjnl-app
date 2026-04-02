@@ -1,4 +1,4 @@
-const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? "AIzaSyDoZ3FTneQFnMctxJMXnZ5OGyWrkaYUNcU";
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? "";
 
 interface Insight {
   category: string;
